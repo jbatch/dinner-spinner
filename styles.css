@@ -178,7 +178,6 @@ h3 {
   color: var(--muted);
 }
 
-.chip-row,
 .tag-chip-list,
 .meal-tags {
   display: flex;
@@ -187,7 +186,29 @@ h3 {
 }
 
 .chip-row {
+  display: grid;
+  gap: 14px;
   margin-top: 12px;
+}
+
+.filter-tag-group {
+  display: grid;
+  gap: 8px;
+}
+
+.filter-tag-group h4 {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.filter-tag-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .chip {
@@ -219,6 +240,7 @@ h3 {
 
 .primary-action,
 .secondary-action,
+.danger-action,
 .text-button {
   min-height: 42px;
   border: 0;
@@ -227,7 +249,8 @@ h3 {
 }
 
 .primary-action,
-.secondary-action {
+.secondary-action,
+.danger-action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -241,7 +264,8 @@ h3 {
 }
 
 .primary-action:disabled,
-.secondary-action:disabled {
+.secondary-action:disabled,
+.danger-action:disabled {
   cursor: not-allowed;
   opacity: 0.58;
 }
@@ -255,6 +279,11 @@ h3 {
   padding: 0 6px;
   color: var(--accent-dark);
   background: transparent;
+}
+
+.danger-action {
+  color: #fff;
+  background: var(--danger);
 }
 
 .compact {
@@ -365,6 +394,11 @@ svg {
 .tag-groups {
   display: grid;
   gap: 12px;
+}
+
+.delete-all-action {
+  width: 100%;
+  margin-top: 14px;
 }
 
 .meal-card,

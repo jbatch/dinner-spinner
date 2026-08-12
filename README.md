@@ -22,3 +22,4 @@ Optional env vars:
 - `PORT`: defaults to `3000`
 - `DB_PATH`: defaults to `./data/dinner-spinner.sqlite`
 - `COOKIE_SECRET`: defaults to the password, but set it separately if you want stable cookies when rotating the password
+- `DINNER_SPINNER_PRODUCTION`: set to `true` to hide and disable the demo reset action

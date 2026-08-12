@@ -11,6 +11,7 @@ const PASSWORD = process.env.DINNER_SPINNER_PASSWORD;
 const COOKIE_SECRET = process.env.COOKIE_SECRET || PASSWORD;
 const DB_PATH = path.resolve(ROOT, process.env.DB_PATH || "data/dinner-spinner.sqlite");
 const COOKIE = "dinner_spinner_auth";
+const IS_PRODUCTION = ["1", "true", "yes"].includes(String(process.env.DINNER_SPINNER_PRODUCTION || "").toLowerCase());
 
 if (!PASSWORD) {
   console.error("Set DINNER_SPINNER_PASSWORD before starting Dinner Spinner.");
@@ -101,6 +102,8 @@ app.post("/logout", (req, res) => {
 
 app.get("/api/meals", requireAuth, (req, res) => res.json({ meals: listMeals() }));
 
+app.get("/api/config", requireAuth, (req, res) => res.json({ isProduction: IS_PRODUCTION }));
+
 app.post("/api/meals", requireAuth, (req, res) => {
   const name = normalizeName(req.body.name);
   if (!name) return res.status(400).json({ error: "name_required" });
@@ -121,6 +124,17 @@ app.put("/api/meals/:id", requireAuth, (req, res) => {
 app.delete("/api/meals/:id", requireAuth, (req, res) => {
   const info = db.prepare("DELETE FROM meals WHERE id = ?").run(req.params.id);
   res.status(info.changes ? 204 : 404).end();
+});
+
+app.delete("/api/meals", requireAuth, (req, res) => {
+  db.prepare("DELETE FROM meals").run();
+  res.status(204).end();
+});
+
+app.post("/api/demo-reset", requireAuth, (req, res) => {
+  if (IS_PRODUCTION) return res.status(404).json({ error: "not_found" });
+  seedDemo();
+  res.json({ meals: listMeals() });
 });
 
 app.post("/api/import", requireAuth, (req, res) => {

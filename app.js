@@ -32,6 +32,7 @@ const activeCount = document.querySelector("#activeCount");
 const filterChips = document.querySelector("#filterChips");
 const filterGroupList = document.querySelector("#filterGroups");
 const mealList = document.querySelector("#mealList");
+const deleteAllMealsButton = document.querySelector("#deleteAllMealsButton");
 const tagGroups = document.querySelector("#tagGroups");
 const mealDialog = document.querySelector("#mealDialog");
 const mealForm = document.querySelector("#mealForm");
@@ -46,6 +47,9 @@ const winnerDialogTitle = document.querySelector("#winnerDialogTitle");
 const winnerDialogTags = document.querySelector("#winnerDialogTags");
 const winnerKeepButton = document.querySelector("#winnerKeepButton");
 const winnerRespinButton = document.querySelector("#winnerRespinButton");
+const restoreDemoButton = document.querySelector("#restoreDemoButton");
+
+let appConfig = { isProduction: false };
 
 async function api(path, options = {}) {
   const response = await fetch(path, {
@@ -85,6 +89,11 @@ async function loadMeals() {
   render();
 }
 
+async function loadConfig() {
+  appConfig = await api("/api/config");
+  restoreDemoButton.hidden = Boolean(appConfig.isProduction);
+}
+
 function normalizeTag(tag) {
   return String(tag || "")
     .trim()
@@ -106,15 +115,48 @@ function allTags() {
   return [...new Set(state.meals.flatMap((item) => item.tags))].sort((a, b) => a.localeCompare(b));
 }
 
-function groupedTags() {
+function splitTag(tag) {
+  const [category, value] = tag.includes(":") ? tag.split(/:(.*)/s).filter(Boolean) : ["other", tag];
+  return { category, value, tag };
+}
+
+function groupedTagEntries() {
   return allTags().reduce((groups, tag) => {
-    const [group, value] = tag.includes(":") ? tag.split(/:(.*)/s).filter(Boolean) : ["other", tag];
-    if (!groups[group]) {
-      groups[group] = [];
+    const entry = splitTag(tag);
+    if (!groups[entry.category]) {
+      groups[entry.category] = [];
     }
-    groups[group].push(value);
+    groups[entry.category].push(entry);
     return groups;
   }, {});
+}
+
+function groupedTags() {
+  return Object.fromEntries(
+    Object.entries(groupedTagEntries()).map(([category, entries]) => [
+      category,
+      entries.map((entry) => entry.value),
+    ]),
+  );
+}
+
+function sortedTagGroupNames(groups) {
+  return Object.keys(groups).sort((a, b) => {
+    if (a === "other") {
+      return 1;
+    }
+    if (b === "other") {
+      return -1;
+    }
+    return a.localeCompare(b);
+  });
+}
+
+function formatTagCategory(category) {
+  return category
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 function activeMeals() {
@@ -253,7 +295,8 @@ function readableTextColor(hex) {
 }
 
 function renderFilters() {
-  const tags = allTags();
+  const tagGroups = groupedTagEntries();
+  const tagGroupNames = sortedTagGroupNames(tagGroups);
   filterChips.innerHTML = "";
   filterGroupList.innerHTML = "";
   ensureActiveFilterGroup();
@@ -296,26 +339,40 @@ function renderFilters() {
     filterGroupList.append(wrapper);
   });
 
-  if (tags.length === 0) {
+  if (tagGroupNames.length === 0) {
     filterChips.innerHTML = `<div class="empty-state">Add tags to filter the wheel.</div>`;
     return;
   }
 
-  tags.forEach((tag) => {
-    const chip = document.createElement("button");
-    chip.type = "button";
-    chip.className = `chip${activeFilterGroup().has(tag) ? " is-active" : ""}`;
-    chip.textContent = tag;
-    chip.addEventListener("click", () => {
-      const group = activeFilterGroup();
-      if (group.has(tag)) {
-        group.delete(tag);
-      } else {
-        group.add(tag);
-      }
-      render();
+  tagGroupNames.forEach((name) => {
+    const section = document.createElement("section");
+    section.className = "filter-tag-group";
+    section.innerHTML = `
+      <h4>${escapeHtml(formatTagCategory(name))}</h4>
+      <div class="filter-tag-chips"></div>
+    `;
+    const chipList = section.querySelector(".filter-tag-chips");
+
+    tagGroups[name].forEach(({ tag, value }) => {
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = `chip${activeFilterGroup().has(tag) ? " is-active" : ""}`;
+      chip.textContent = value;
+      chip.title = tag;
+      chip.setAttribute("aria-label", `Toggle ${tag} filter`);
+      chip.addEventListener("click", () => {
+        const group = activeFilterGroup();
+        if (group.has(tag)) {
+          group.delete(tag);
+        } else {
+          group.add(tag);
+        }
+        render();
+      });
+      chipList.append(chip);
     });
-    filterChips.append(chip);
+
+    filterChips.append(section);
   });
 }
 
@@ -361,6 +418,7 @@ function ensureActiveFilterGroup() {
 
 function renderMeals() {
   mealList.innerHTML = "";
+  deleteAllMealsButton.disabled = state.meals.length === 0;
 
   if (state.meals.length === 0) {
     mealList.innerHTML = `<div class="empty-state">No dinners yet.</div>`;
@@ -413,7 +471,7 @@ function renderMeals() {
 
 function renderTags() {
   const groups = groupedTags();
-  const names = Object.keys(groups).sort((a, b) => a.localeCompare(b));
+  const names = sortedTagGroupNames(groups);
   tagGroups.innerHTML = "";
 
   if (names.length === 0) {
@@ -425,7 +483,7 @@ function renderTags() {
     const group = document.createElement("section");
     group.className = "tag-group";
     group.innerHTML = `
-      <h3>${escapeHtml(name)}</h3>
+      <h3>${escapeHtml(formatTagCategory(name))}</h3>
       <div class="tag-chip-list">
         ${groups[name].map((value) => `<span class="tag-pill">${escapeHtml(value)}</span>`).join("")}
       </div>
@@ -587,6 +645,49 @@ async function deleteCurrentMeal() {
   render();
 }
 
+async function deleteAllMeals() {
+  if (state.meals.length === 0) {
+    return;
+  }
+
+  const confirmed = window.confirm(`Delete all ${state.meals.length} dinner options? This cannot be undone.`);
+  if (!confirmed) {
+    return;
+  }
+
+  await api("/api/meals", { method: "DELETE" });
+  state.meals = [];
+  decisionVetoIds.clear();
+  lastWinnerId = null;
+  winnerTitle.textContent = "Tap spin";
+  winnerTags.textContent = "Add dinners, then let the wheel choose.";
+  closeWinnerDialog();
+  pruneFilterGroups();
+  render();
+}
+
+async function restoreDemoMeals() {
+  if (appConfig.isProduction) {
+    return;
+  }
+
+  const confirmed = window.confirm("Replace all dinner options with the demo list? This cannot be undone.");
+  if (!confirmed) {
+    return;
+  }
+
+  const data = await api("/api/demo-reset", { method: "POST" });
+  state.meals = data.meals.map(normalizeMeal);
+  filterGroups = [new Set()];
+  activeFilterGroupIndex = 0;
+  decisionVetoIds.clear();
+  lastWinnerId = null;
+  winnerTitle.textContent = "Tap spin";
+  winnerTags.textContent = "Filter the wheel, veto a dinner, then let it choose.";
+  closeWinnerDialog();
+  render();
+}
+
 function pruneFilterGroups() {
   const validTags = new Set(allTags());
   const validMealIds = new Set(state.meals.map((item) => item.id));
@@ -640,6 +741,7 @@ mealForm.addEventListener("submit", async (event) => {
 });
 
 deleteMealButton.addEventListener("click", deleteCurrentMeal);
+deleteAllMealsButton.addEventListener("click", deleteAllMeals);
 winnerKeepButton.addEventListener("click", keepWinner);
 winnerRespinButton.addEventListener("click", vetoWinnerAndRespin);
 winnerDialog.addEventListener("cancel", (event) => {
@@ -679,6 +781,8 @@ document.querySelector("#importButton").addEventListener("click", async () => {
   }
 });
 
+restoreDemoButton.addEventListener("click", restoreDemoMeals);
+
 window.addEventListener("resize", renderWheel);
 
 if ("serviceWorker" in navigator) {
@@ -687,7 +791,7 @@ if ("serviceWorker" in navigator) {
   });
 }
 
-loadMeals().catch((error) => {
+Promise.all([loadConfig(), loadMeals()]).catch((error) => {
   winnerTitle.textContent = "Could not load dinners";
   winnerTags.textContent = error.message;
   render();

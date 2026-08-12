@@ -40,6 +40,8 @@ try {
 
   const seeded = await jsonFetch(`/api/meals`, cookie);
   if (seeded.meals.length !== 15) throw new Error(`expected 15 seeded meals, got ${seeded.meals.length}`);
+  const config = await jsonFetch(`/api/config`, cookie);
+  if (config.isProduction !== false) throw new Error("expected dev config by default");
 
   const created = await fetch(`http://127.0.0.1:${port}/api/meals`, {
     method: "POST",
@@ -50,6 +52,14 @@ try {
 
   const afterCreate = await jsonFetch(`/api/meals`, cookie);
   if (!afterCreate.meals.some((meal) => meal.name === "Smoke dinner")) throw new Error("created meal missing");
+
+  await expectStatus(fetch(`http://127.0.0.1:${port}/api/meals`, { method: "DELETE", headers: { cookie } }), 204);
+  const afterDeleteAll = await jsonFetch(`/api/meals`, cookie);
+  if (afterDeleteAll.meals.length !== 0) throw new Error(`expected no meals after delete all, got ${afterDeleteAll.meals.length}`);
+
+  await expectStatus(fetch(`http://127.0.0.1:${port}/api/demo-reset`, { method: "POST", headers: { cookie } }), 200);
+  const afterDemoReset = await jsonFetch(`/api/meals`, cookie);
+  if (afterDemoReset.meals.length !== 15) throw new Error(`expected 15 demo meals after reset, got ${afterDemoReset.meals.length}`);
 
   await expectStatus(fetch(`http://127.0.0.1:${port}/server.mjs`, { headers: { cookie } }), 404);
   console.log("smoke ok");
