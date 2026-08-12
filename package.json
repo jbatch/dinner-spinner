@@ -1,0 +1,19 @@
+{
+  "name": "dinner-spinner",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.7.0",
+  "scripts": {
+    "dev": "node server.mjs",
+    "start": "node server.mjs",
+    "smoke": "node scripts/smoke-test.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "better-sqlite3": "13.0.3",
+    "express": "5.2.1"
+  }
+}

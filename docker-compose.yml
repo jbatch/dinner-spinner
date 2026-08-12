@@ -1,0 +1,12 @@
+services:
+  dinner-spinner:
+    build: .
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      DINNER_SPINNER_PASSWORD: "${DINNER_SPINNER_PASSWORD:?Set DINNER_SPINNER_PASSWORD in your environment or .env file}"
+      COOKIE_SECRET: "${COOKIE_SECRET:-change-this-cookie-secret}"
+      PORT: "3000"
+      DB_PATH: "/data/dinner-spinner.sqlite"
+    volumes:
+      - ./data:/data

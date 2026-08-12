@@ -1,0 +1,55 @@
+name: Publish Dinner Spinner
+
+on:
+  push:
+    branches:
+      - master
+
+env:
+  IMAGE_NAME: ghcr.io/jbatch/dinner-spinner
+
+jobs:
+  publish-dinner-spinner-docker-image:
+    name: Publish Dinner Spinner Docker Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout Dinner Spinner
+        uses: actions/checkout@v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Use pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.7.0
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run smoke test
+        run: pnpm run smoke
+
+      - name: Build the Dinner Spinner Docker image
+        run: |
+          docker build \
+            -t $IMAGE_NAME:latest \
+            -t $IMAGE_NAME:${{ github.sha }} \
+            .
+
+      - name: Push the Dinner Spinner Docker image
+        run: |
+          docker push $IMAGE_NAME:latest
+          docker push $IMAGE_NAME:${{ github.sha }}

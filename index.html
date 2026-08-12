@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#101820">
+    <title>Dinner Spinner</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='28' fill='%230f7c7b'/%3E%3Cpath d='M32 4v28l22 12A28 28 0 0 0 32 4Z' fill='%23ffd166'/%3E%3Cpath d='M32 32 10 48A28 28 0 0 0 54 44Z' fill='%23ef476f'/%3E%3Ccircle cx='32' cy='32' r='10' fill='%23101820'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Tonight</p>
+          <h1>Dinner Spinner</h1>
+        </div>
+      </header>
+
+      <main class="page-stack">
+        <section class="page is-active" id="spinPage" data-page="spin" aria-labelledby="spinTitle">
+          <div class="wheel-stage">
+            <div class="wheel-pointer" aria-hidden="true"></div>
+            <canvas id="wheelCanvas" width="720" height="720" aria-label="Dinner option wheel"></canvas>
+            <button class="spin-button" id="spinButton" type="button">Spin</button>
+          </div>
+
+          <div class="winner-panel" aria-live="polite">
+            <p class="panel-label">Winner</p>
+            <h2 id="spinTitle">Tap spin</h2>
+            <p id="winnerTags">Filter the wheel, veto a dinner, then let it choose.</p>
+          </div>
+
+          <section class="control-panel" aria-label="Wheel filters">
+            <div class="panel-heading">
+              <div>
+                <p class="panel-label">Wheel filter</p>
+                <h3 id="activeCount">0 options</h3>
+              </div>
+              <div class="filter-actions">
+                <button class="secondary-action compact" id="addFilterGroupButton" type="button">AND</button>
+                <button class="text-button" id="clearFiltersButton" type="button">Clear</button>
+              </div>
+            </div>
+            <div class="filter-groups" id="filterGroups" aria-label="Active filter groups"></div>
+            <div class="chip-row" id="filterChips" aria-label="Filter tags"></div>
+          </section>
+        </section>
+
+        <section class="page" id="mealsPage" data-page="meals" aria-labelledby="mealsTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Wheel list</p>
+              <h2 id="mealsTitle">Dinner options</h2>
+            </div>
+            <button class="primary-action" id="newMealButton" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 5v14"></path>
+                <path d="M5 12h14"></path>
+              </svg>
+              Add
+            </button>
+          </div>
+          <div class="meal-list" id="mealList"></div>
+        </section>
+
+        <section class="page" id="tagsPage" data-page="tags" aria-labelledby="tagsTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Organise</p>
+              <h2 id="tagsTitle">Tags</h2>
+            </div>
+          </div>
+          <div class="tag-groups" id="tagGroups"></div>
+        </section>
+
+        <section class="page" id="settingsPage" data-page="settings" aria-labelledby="settingsTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">House server</p>
+              <h2 id="settingsTitle">Settings</h2>
+            </div>
+          </div>
+          <div class="settings-list">
+            <div class="settings-row">
+              <div>
+                <h3>Storage</h3>
+                <p>Dinners are saved in the shared SQLite database.</p>
+              </div>
+              <button class="secondary-action" id="exportButton" type="button">Export</button>
+            </div>
+            <label class="settings-field">
+              <span>Import JSON</span>
+              <textarea id="importText" rows="5" placeholder='{"meals":[...]}'></textarea>
+            </label>
+            <button class="primary-action wide" id="importButton" type="button">Import list</button>
+            <form method="post" action="/logout">
+              <button class="secondary-action wide" type="submit">Log out</button>
+            </form>
+          </div>
+        </section>
+      </main>
+
+      <nav class="bottom-ribbon" aria-label="Primary">
+        <button class="ribbon-item is-active" type="button" data-target="spinPage" aria-label="Spinner">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="8"></circle>
+            <path d="M12 4v8l6 4"></path>
+          </svg>
+          <span>Spin</span>
+        </button>
+        <button class="ribbon-item" type="button" data-target="mealsPage" aria-label="Dinner options">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 5h16"></path>
+            <path d="M4 12h16"></path>
+            <path d="M4 19h16"></path>
+            <path d="M8 5v14"></path>
+          </svg>
+          <span>Meals</span>
+        </button>
+        <button class="ribbon-item" type="button" data-target="tagsPage" aria-label="Tags">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20 11 13 4H5v8l7 7Z"></path>
+            <circle cx="8.5" cy="8.5" r="1"></circle>
+          </svg>
+          <span>Tags</span>
+        </button>
+        <button class="ribbon-item" type="button" data-target="settingsPage" aria-label="Settings">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.4 1a7 7 0 0 0-1.7-1L14.5 3h-5l-.3 3.1a7 7 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.5a7 7 0 0 0 0 2l-2 1.5 2 3.4 2.4-1a7 7 0 0 0 1.7 1l.3 3.1h5l.3-3.1a7 7 0 0 0 1.7-1l2.4 1 2-3.4-2-1.5c.1-.3.1-.7.1-1Z"></path>
+          </svg>
+          <span>Settings</span>
+        </button>
+      </nav>
+    </div>
+
+    <dialog class="meal-dialog" id="mealDialog">
+      <form method="dialog" id="mealForm">
+        <div class="dialog-heading">
+          <h2 id="dialogTitle">Add dinner</h2>
+          <button class="icon-button" value="cancel" type="submit" aria-label="Close" title="Close">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 6l12 12"></path>
+              <path d="M18 6 6 18"></path>
+            </svg>
+          </button>
+        </div>
+        <input type="hidden" id="mealId">
+        <label class="form-field">
+          <span>Name</span>
+          <input id="mealName" type="text" autocomplete="off" required placeholder="Beef cottage pie">
+        </label>
+        <label class="form-field">
+          <span>Tags</span>
+          <input id="mealTags" type="text" autocomplete="off" placeholder="protein:beef, carb:potato, quick">
+        </label>
+        <div class="dialog-actions">
+          <button class="secondary-action" id="deleteMealButton" type="button">Delete</button>
+          <button class="primary-action" value="default" type="submit">Save</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="winner-dialog" id="winnerDialog" aria-labelledby="winnerDialogTitle">
+      <div class="winner-modal-body">
+        <div class="streamers" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+        <p class="panel-label">Winner</p>
+        <h2 id="winnerDialogTitle">Dinner</h2>
+        <p id="winnerDialogTags">Tags</p>
+        <div class="winner-dialog-actions">
+          <button class="secondary-action" id="winnerKeepButton" type="button">Keep it</button>
+          <button class="primary-action" id="winnerRespinButton" type="button">Veto & re-spin</button>
+        </div>
+      </div>
+    </dialog>
+
+    <script src="app.js" defer></script>
+  </body>
+</html>
