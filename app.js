@@ -48,6 +48,7 @@ const winnerDialogTags = document.querySelector("#winnerDialogTags");
 const winnerKeepButton = document.querySelector("#winnerKeepButton");
 const winnerRespinButton = document.querySelector("#winnerRespinButton");
 const restoreDemoButton = document.querySelector("#restoreDemoButton");
+const updateAppButton = document.querySelector("#updateAppButton");
 
 let appConfig = { isProduction: false };
 
@@ -688,6 +689,28 @@ async function restoreDemoMeals() {
   render();
 }
 
+async function forceAppUpdate() {
+  updateAppButton.disabled = true;
+  updateAppButton.textContent = "Updating...";
+
+  try {
+    if ("caches" in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.filter((key) => key.startsWith("dinner-spinner-")).map((key) => caches.delete(key)));
+    }
+
+    if ("serviceWorker" in navigator) {
+      const registration = await navigator.serviceWorker.getRegistration("/");
+      if (registration) {
+        await registration.update();
+        registration.waiting?.postMessage({ type: "SKIP_WAITING" });
+      }
+    }
+  } finally {
+    window.location.replace(`/?update=${Date.now()}`);
+  }
+}
+
 function pruneFilterGroups() {
   const validTags = new Set(allTags());
   const validMealIds = new Set(state.meals.map((item) => item.id));
@@ -782,6 +805,7 @@ document.querySelector("#importButton").addEventListener("click", async () => {
 });
 
 restoreDemoButton.addEventListener("click", restoreDemoMeals);
+updateAppButton.addEventListener("click", forceAppUpdate);
 
 window.addEventListener("resize", renderWheel);
 

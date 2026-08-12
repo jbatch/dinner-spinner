@@ -35,6 +35,7 @@ try {
   const home = await fetch(`http://127.0.0.1:${port}/`, { headers: { cookie } });
   const homeText = await home.text();
   if (!homeText.includes("Dinner Spinner")) throw new Error("home page did not load");
+  if (!homeText.includes("Update app")) throw new Error("home page missing update app action");
   if (homeText.includes("__APP_VERSION__")) throw new Error("home page leaked app version placeholder");
   if (!homeText.includes("/app.js?v=") || !homeText.includes("/styles.css?v=")) throw new Error("home page missing versioned assets");
   if (home.headers.get("cache-control") !== "no-store") throw new Error("home page is not no-store");

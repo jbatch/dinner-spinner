@@ -24,6 +24,12 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+});
+
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
   if (url.origin !== location.origin || url.pathname.startsWith("/api/") || url.pathname === "/login") {
