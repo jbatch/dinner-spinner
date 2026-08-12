@@ -13,6 +13,8 @@ const palette = [
   "#6a4c93"
 ];
 
+const MAX_DECISION_VETOES = 3;
+
 let state = { meals: [] };
 let filterGroups = [new Set()];
 let activeFilterGroupIndex = 0;
@@ -490,11 +492,15 @@ function announceWinner(item) {
 
 function showWinnerDialog(item) {
   const remainingAfterVeto = activeMeals().filter((meal) => meal.id !== item.id).length;
+  const vetoesLeft = Math.max(0, MAX_DECISION_VETOES - decisionVetoIds.size);
+  const nextVetoLabel = vetoesLeft === 1 ? "1 veto left" : `${vetoesLeft} vetoes left`;
+  const canRespin = remainingAfterVeto >= 2 && vetoesLeft > 0;
   winnerDialogTitle.textContent = item.name;
   winnerDialogTags.textContent = item.tags.length ? item.tags.join(" | ") : "No tags yet";
-  winnerRespinButton.textContent =
-    remainingAfterVeto >= 2 ? `Veto & re-spin (${remainingAfterVeto} remaining)` : `Need 2 to re-spin (${remainingAfterVeto} remaining)`;
-  winnerRespinButton.disabled = remainingAfterVeto < 2;
+  winnerRespinButton.textContent = canRespin
+    ? `Veto & re-spin (${nextVetoLabel})`
+    : `Keep it (${remainingAfterVeto} remaining)`;
+  winnerRespinButton.disabled = !canRespin;
 
   if (winnerDialog.open) {
     closeWinnerDialog();
@@ -516,7 +522,7 @@ function keepWinner() {
 
 function vetoWinnerAndRespin() {
   const winner = state.meals.find((item) => item.id === lastWinnerId);
-  if (!winner) {
+  if (!winner || decisionVetoIds.size >= MAX_DECISION_VETOES) {
     closeWinnerDialog();
     return;
   }
@@ -674,6 +680,12 @@ document.querySelector("#importButton").addEventListener("click", async () => {
 });
 
 window.addEventListener("resize", renderWheel);
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
+}
 
 loadMeals().catch((error) => {
   winnerTitle.textContent = "Could not load dinners";

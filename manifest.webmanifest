@@ -1,0 +1,24 @@
+{
+  "name": "Dinner Spinner",
+  "short_name": "Dinner",
+  "description": "A household dinner wheel.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#eef2e8",
+  "theme_color": "#101820",
+  "icons": [
+    {
+      "src": "/icons/dinner-spinner-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/dinner-spinner-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

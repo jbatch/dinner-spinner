@@ -34,6 +34,9 @@ try {
 
   const home = await fetch(`http://127.0.0.1:${port}/`, { headers: { cookie } });
   if (!(await home.text()).includes("Dinner Spinner")) throw new Error("home page did not load");
+  await expectStatus(fetch(`http://127.0.0.1:${port}/manifest.webmanifest`, { headers: { cookie } }), 200);
+  await expectStatus(fetch(`http://127.0.0.1:${port}/sw.js`, { headers: { cookie } }), 200);
+  await expectStatus(fetch(`http://127.0.0.1:${port}/icons/dinner-spinner-192.png`, { headers: { cookie } }), 200);
 
   const seeded = await jsonFetch(`/api/meals`, cookie);
   if (seeded.meals.length !== 15) throw new Error(`expected 15 seeded meals, got ${seeded.meals.length}`);

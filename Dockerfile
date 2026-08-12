@@ -9,6 +9,8 @@ RUN pnpm install --frozen-lockfile --prod
 
 COPY server.mjs ./
 COPY index.html styles.css app.js ./
+COPY manifest.webmanifest sw.js ./
+COPY icons ./icons
 
 ENV NODE_ENV=production
 ENV PORT=3000

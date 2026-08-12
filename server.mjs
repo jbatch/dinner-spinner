@@ -133,6 +133,9 @@ app.post("/api/import", requireAuth, (req, res) => {
 app.get(["/", "/index.html"], requireAuth, (req, res) => res.sendFile(path.join(ROOT, "index.html")));
 app.get("/styles.css", requireAuth, (req, res) => res.sendFile(path.join(ROOT, "styles.css")));
 app.get("/app.js", requireAuth, (req, res) => res.sendFile(path.join(ROOT, "app.js")));
+app.get("/manifest.webmanifest", requireAuth, (req, res) => res.sendFile(path.join(ROOT, "manifest.webmanifest")));
+app.get("/sw.js", requireAuth, (req, res) => res.type("application/javascript").sendFile(path.join(ROOT, "sw.js")));
+app.get("/icons/:file", requireAuth, (req, res) => res.sendFile(path.join(ROOT, "icons", path.basename(req.params.file))));
 
 app.listen(PORT, () => {
   console.log(`Dinner Spinner listening on http://localhost:${PORT}`);
