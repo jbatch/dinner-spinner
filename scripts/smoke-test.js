@@ -33,9 +33,16 @@ try {
   if (!cookie) throw new Error("login did not set cookie");
 
   const home = await fetch(`http://127.0.0.1:${port}/`, { headers: { cookie } });
-  if (!(await home.text()).includes("Dinner Spinner")) throw new Error("home page did not load");
+  const homeText = await home.text();
+  if (!homeText.includes("Dinner Spinner")) throw new Error("home page did not load");
+  if (homeText.includes("__APP_VERSION__")) throw new Error("home page leaked app version placeholder");
+  if (!homeText.includes("/app.js?v=") || !homeText.includes("/styles.css?v=")) throw new Error("home page missing versioned assets");
+  if (home.headers.get("cache-control") !== "no-store") throw new Error("home page is not no-store");
   await expectStatus(fetch(`http://127.0.0.1:${port}/manifest.webmanifest`, { headers: { cookie } }), 200);
-  await expectStatus(fetch(`http://127.0.0.1:${port}/sw.js`, { headers: { cookie } }), 200);
+  const serviceWorker = await fetch(`http://127.0.0.1:${port}/sw.js`, { headers: { cookie } });
+  if (serviceWorker.status !== 200) throw new Error(`expected service worker status 200, got ${serviceWorker.status}`);
+  if ((await serviceWorker.text()).includes("__APP_VERSION__")) throw new Error("service worker leaked app version placeholder");
+  if (serviceWorker.headers.get("cache-control") !== "no-store") throw new Error("service worker is not no-store");
   await expectStatus(fetch(`http://127.0.0.1:${port}/icons/dinner-spinner-192.png`, { headers: { cookie } }), 200);
 
   const seeded = await jsonFetch(`/api/meals`, cookie);

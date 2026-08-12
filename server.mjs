@@ -12,6 +12,14 @@ const COOKIE_SECRET = process.env.COOKIE_SECRET || PASSWORD;
 const DB_PATH = path.resolve(ROOT, process.env.DB_PATH || "data/dinner-spinner.sqlite");
 const COOKIE = "dinner_spinner_auth";
 const IS_PRODUCTION = ["1", "true", "yes"].includes(String(process.env.DINNER_SPINNER_PRODUCTION || "").toLowerCase());
+const VERSIONED_FILES = ["index.html", "styles.css", "app.js", "sw.js", "manifest.webmanifest"];
+const APP_VERSION =
+  process.env.APP_VERSION ||
+  crypto
+    .createHash("sha256")
+    .update(VERSIONED_FILES.map((file) => fs.readFileSync(path.join(ROOT, file))).join(""))
+    .digest("hex")
+    .slice(0, 12);
 
 if (!PASSWORD) {
   console.error("Set DINNER_SPINNER_PASSWORD before starting Dinner Spinner.");
@@ -72,6 +80,15 @@ const authToken = () => `ok.${sign("ok")}`;
 const parseCookies = (header = "") => Object.fromEntries(header.split(";").map((part) => part.trim().split("=")).filter(([key]) => key));
 const isAuthed = (req) => parseCookies(req.headers.cookie)[COOKIE] === authToken();
 const cookieOptions = `HttpOnly; SameSite=Lax; Path=/; Max-Age=${60 * 60 * 24 * 365}`;
+const noStore = (_req, res, next) => {
+  res.setHeader("Cache-Control", "no-store");
+  next();
+};
+const noCache = (_req, res, next) => {
+  res.setHeader("Cache-Control", "no-cache");
+  next();
+};
+const renderAppFile = (file) => fs.readFileSync(path.join(ROOT, file), "utf8").replaceAll("__APP_VERSION__", APP_VERSION);
 
 const app = express();
 app.use(express.json({ limit: "256kb" }));
@@ -144,11 +161,11 @@ app.post("/api/import", requireAuth, (req, res) => {
   res.json({ meals: listMeals() });
 });
 
-app.get(["/", "/index.html"], requireAuth, (req, res) => res.sendFile(path.join(ROOT, "index.html")));
-app.get("/styles.css", requireAuth, (req, res) => res.sendFile(path.join(ROOT, "styles.css")));
-app.get("/app.js", requireAuth, (req, res) => res.sendFile(path.join(ROOT, "app.js")));
-app.get("/manifest.webmanifest", requireAuth, (req, res) => res.sendFile(path.join(ROOT, "manifest.webmanifest")));
-app.get("/sw.js", requireAuth, (req, res) => res.type("application/javascript").sendFile(path.join(ROOT, "sw.js")));
+app.get(["/", "/index.html"], requireAuth, noStore, (req, res) => res.type("html").send(renderAppFile("index.html")));
+app.get("/styles.css", requireAuth, noCache, (req, res) => res.sendFile(path.join(ROOT, "styles.css")));
+app.get("/app.js", requireAuth, noCache, (req, res) => res.sendFile(path.join(ROOT, "app.js")));
+app.get("/manifest.webmanifest", requireAuth, noCache, (req, res) => res.sendFile(path.join(ROOT, "manifest.webmanifest")));
+app.get("/sw.js", requireAuth, noStore, (req, res) => res.type("application/javascript").send(renderAppFile("sw.js")));
 app.get("/icons/:file", requireAuth, (req, res) => res.sendFile(path.join(ROOT, "icons", path.basename(req.params.file))));
 
 app.listen(PORT, () => {

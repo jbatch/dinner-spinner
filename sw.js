@@ -1,9 +1,10 @@
-const CACHE_NAME = "dinner-spinner-v1";
+const APP_VERSION = "__APP_VERSION__";
+const CACHE_NAME = `dinner-spinner-${APP_VERSION}`;
 const ASSETS = [
   "/",
   "/index.html",
-  "/styles.css",
-  "/app.js",
+  `/styles.css?v=${APP_VERSION}`,
+  `/app.js?v=${APP_VERSION}`,
   "/manifest.webmanifest",
   "/icons/dinner-spinner-192.png",
   "/icons/dinner-spinner-512.png"
